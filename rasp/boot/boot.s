@@ -5,7 +5,7 @@
 
 	// Make _start global
 	// NOTE: section _start is defined in linker script
-	.globl _start
+	.global _start
 
 	// Entry point for the kernel.
 	// ARMv6 (see XXX.pdf):
