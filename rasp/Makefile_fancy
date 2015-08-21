@@ -1,0 +1,75 @@
+#
+# 1] create a set of "variables" for paths, compilers, libs, etc.
+#
+# e.g.:
+# IDIR = ../include
+# ODIR= obj
+# LDIR = ../lib
+# 
+# CC=gcc
+# CFLAGS= -I$(IDIR)
+# 
+# LIBS= -lm
+
+IDIR = 
+ODIR = obj
+LDIR =
+LNKDIR = link
+
+# leave empty or change to "_nopage"
+LNKOPT = 
+
+CC = arm-none-eabi-gcc
+CFLAGS = -mcpu=arm1176jzf-s -fpic -ffreestanding -std=gnu99 -O2 -Wall -Wextra
+ASMFLAGS = -mcpu=arm1176jzf-s -fpic -ffreestanding
+
+LIBS = 
+
+# 2] use function patsubst to concatenate IDIR and _DEPS,
+# creating the full path to DEPS files
+#
+# e.g.:
+# _DEPS = hellomake.h
+# DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
+# 
+# _OBJ = hellomake.o hellofunc.o
+# OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+
+_DEPS = 
+DEPS = 
+
+_OBJ = boot.o kernel.o
+OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+
+# 3] start with sections
+
+all: kernel.img
+
+# create multiple rules to create the object files.
+# NOTE:
+# $@ means "everything before :" ($(ODIR)/%.o in this case)
+# $< means "the first item in the dependencies list, i.e. the first element after :" (%.c in this case)
+$(ODIR)/%.o: boot/%.s $(DEPS)
+	$(CC) -c -o $@ $< $(ASMFLAGS)
+
+$(ODIR)/%.o: kernel/%.c $(DEPS)
+	$(CC)  -c -o $@ $< $(CFLAGS) 
+
+myos.elf: $(OBJ)
+	$(CC) -T $(LNKDIR)/linker$(LNKOPT).ld -o $@ $^ $(CFLAGS) $(LIBS) -nostdlib
+
+kernel.img: myos.elf
+	arm-none-eabi-objcopy myos.elf -O binary kernel.img
+
+# .PHONY prevents make from getting confused by an actual file
+# called clean and causes it to continue in spite of errors from rm
+.PHONY: clean veryclean
+
+clean:
+	rm -rf *.o
+
+veryclean:
+	rm -rf *.o
+	rm -rf *.elf
+	rm -rf *.img
+

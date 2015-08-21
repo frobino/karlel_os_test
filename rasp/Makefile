@@ -16,7 +16,7 @@ clean:
 	rm -f *.o
 
 very_clean:
-	rm -f *.o
-	rm -f *.elf
-	rm -f *.bin
+	rm -rf *.o
+	rm -rf *.elf
+	rm -rf *.img
 
