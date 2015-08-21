@@ -3,7 +3,7 @@ A basic OS to understand and document the basics plus crazy ideas
 
 # goals of the project:
 
-- PORTABILITY: starting from the guide available at http://wiki.osdev.org, develope a simple OS portable between my dev boards.
+- PORTABILITY: starting from the guide available at http://wiki.osdev.org, develope a simple OS portable between my dev boards. Merging material from tutorials at valvers.com
 
 - KNOWLEDGE OF BARE METAL: understand in details the boot sequence of an embedded system, create my own run time (memory segmentation - boot.s - , placement of segments in memory - linker script -, ...)
 
@@ -51,4 +51,8 @@ From the ARMs perspective the kernel.img file is loaded, by default,
 to address 0x8000.  (there are ways to change that, not going to worry
 about that right now).
 
-linker impl a interrupt vector table
+# TODO next:
+
+- linker impl a interrupt vector table? see baremetal projects
+- read more about freestanding and nostdlib flags. When using both, no stdlib is included -> I have to port my own as described in http://wiki.osdev.org/Meaty_Skeleton and http://wiki.osdev.org/Creating_a_C_Library, or linking a pre made std C library as newlib.
+- if nostdlib flag is removed (and I add a call no malloc), I get a similar result as step2 -  armc09 from valvers tutorial. 
