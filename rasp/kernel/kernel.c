@@ -1,3 +1,4 @@
+
 #if !defined(__cplusplus)
 #include <stdbool.h>
 #endif
@@ -34,16 +35,24 @@ enum
     // The GPIO registers base address.
     GPIO_BASE = 0x20200000,
  
-    // The offsets for reach register.
- 
+    // The offsets for reach register:
+
+    /********************************************* 
+     * CTRL actuation
+     *********************************************/
+    
     // Controls actuation of pull up/down to ALL GPIO pins.
     GPPUD = (GPIO_BASE + 0x94),
  
     // Controls actuation of pull up/down for specific GPIO pin.
     GPPUDCLK0 = (GPIO_BASE + 0x98),
- 
-    // The base address for UART.
-    UART0_BASE = 0x20201000,
+
+    /********************************************* 
+     * UART addresses
+     *********************************************/
+    
+    // The base address for UART. 0x20201000
+    UART0_BASE = (GPIO_BASE + 0x1000),
  
     // The offsets for reach register for the UART.
     UART0_DR     = (UART0_BASE + 0x00),
@@ -64,8 +73,58 @@ enum
     UART0_ITIP   = (UART0_BASE + 0x84),
     UART0_ITOP   = (UART0_BASE + 0x88),
     UART0_TDR    = (UART0_BASE + 0x8C),
+
+    
+    /********************************************* 
+     * GPIO function select (used for all GPIOs): 
+     * Used to configure GPIO pins to output or input
+     *********************************************/
+
+    /* #define GPIO_GPFSEL1    1 */
+    GPIO_GPFSE1L = (GPIO_BASE + 0x4), // DOUBLE CHECK ON MANUAL
+    
+    /********************************************* 
+     * GPIO set output high (used for all GPIOs):
+     * Used to set a GPIO configured as output in high state (VDD)
+     *********************************************/
+
+    /* #define GPIO_GPSET0	7 */
+    GPIO_GPSET0 = (GPIO_BASE + 0x1C), // DOUBLE CHECK ON MANUAL
+    
+    /********************************************* 
+     * GPIO set output low (used for all GPIOs)
+     * Used to set a GPIO configured as output in low state (GND)
+     *********************************************/
+
+     /* #define GPIO_GPCLR0     10 */
+    GPIO_GPCLR0 = (GPIO_BASE + 0x28), // DOUBLE CHECK ON MANUAL
+    
 };
- 
+
+void ok_led_init()
+{
+	/* Write 1 to the GPIO16 init nibble in the Function Select 1 GPIO
+	   peripheral register to enable GPIO16 as an output. 
+	   See page 90 manual,     
+	   bits 18 to 20 in the ‘GPIO Function Select 1′ (GPFSEL1) register control the GPIO16 pin.
+	*/
+	mmio_write(GPIO_GPFSE1L, (1 << 18));
+
+}
+
+void ok_init_write(uint8_t data)
+{
+	if (!data) {
+		/* Set the GPIO16 (pin number 16) output low ( Turn OK LED on )*/
+		mmio_write(GPIO_GPCLR0, (1 << 16));
+	}
+	else {
+		/* Set the GPIO16 (pin number 16) output high ( Turn OK LED off )*/
+	        mmio_write(GPIO_GPSET0, (1 << 16));
+	}
+
+}
+
 void uart_init()
 {
 	// Disable UART0.
@@ -140,10 +199,25 @@ void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 	(void) r0;
 	(void) r1;
 	(void) atags;
- 
+
+	// Initialize pheripherals
 	uart_init();
+	ok_led_init();
+
+	// Show that we are alive
+	uint8_t data;
+	data = 0;
+	ok_init_write(data); // data = 0 turns the led ON
+
+	
+	// Print on uart
 	uart_puts("Hello, kernel World!\r\n");
+
  
-	while ( true )
+	while ( true ){
+		// Every letter we get we switch the ok led on-off
+		data = !data;
+		ok_init_write(data);
 		uart_putc(uart_getc());
+	}
 }
