@@ -14,8 +14,11 @@ static inline uint32_t mmio_read(uint32_t reg)
 {
 	return *(volatile uint32_t *)reg;
 }
- 
+
 /* Loop <delay> times in a way that the compiler won't optimize away. */
+/* NOTE: this function is useless now... should we move it to a "helper" file?
+   or do we remove it completely?
+ */
 static inline void delay(int32_t count)
 {
 	asm volatile("__delay_%=: subs %[count], %[count], #1; bne __delay_%=\n"
@@ -108,7 +111,9 @@ void ok_led_init()
 	   See page 90 manual,     
 	   bits 18 to 20 in the ‘GPIO Function Select 1′ (GPFSEL1) register control the GPIO16 pin.
 	*/
-	mmio_write(GPIO_GPFSE1L, (1 << 18));
+	uint32_t temp_reg;
+	temp_reg = mmio_read(GPIO_GPFSE1L);
+	mmio_write(GPIO_GPFSE1L, (1 << 18) | temp_reg);
 
 }
 
@@ -129,19 +134,13 @@ void uart_init()
 {
 	// Disable UART0.
 	mmio_write(UART0_CR, 0x00000000);
-	// Setup the GPIO pin 14 && 15.
- 
-	// Disable pull up/down for all GPIO pins & delay for 150 cycles.
-	mmio_write(GPPUD, 0x00000000);
-	delay(150);
- 
-	// Disable pull up/down for pin 14,15 & delay for 150 cycles.
-	mmio_write(GPPUDCLK0, (1 << 14) | (1 << 15));
-	delay(150);
- 
-	// Write 0 to GPPUDCLK0 to make it take effect.
-	mmio_write(GPPUDCLK0, 0x00000000);
- 
+
+	// Setup the GPIO pin 14 && 15 as UART (alt.fun.0, p.102 manual)
+	// using a non destructive method (read first then write)
+	uint32_t temp_reg;
+	temp_reg = mmio_read(GPIO_GPFSE1L);
+ 	mmio_write(GPIO_GPFSE1L, (1 << 14) | (1 << 17) | temp_reg);
+  
 	// Clear pending interrupts.
 	mmio_write(UART0_ICR, 0x7FF);
  
