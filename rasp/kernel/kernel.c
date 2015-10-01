@@ -201,8 +201,8 @@ void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 	(void) atags;
 
 	// Initialize pheripherals
-	uart_init();
 	ok_led_init();
+	uart_init();
 
 	// Show that we are alive
 	uint8_t data;
