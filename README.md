@@ -51,6 +51,11 @@ From the ARMs perspective the kernel.img file is loaded, by default,
 to address 0x8000.  (there are ways to change that, not going to worry
 about that right now).
 
+# References:
+- HOWTO QEMU:
+  http://blog.bobuhiro11.net/2014/01-13-baremetal.html,
+  https://upload.wikimedia.org/wikiversity/en/e/ef/ESys.5.A.Hello.20141112.pdf
+
 # TODO next:
 
 - linker impl a interrupt vector table? see baremetal projects

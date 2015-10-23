@@ -36,7 +36,11 @@ size_t strlen(const char* str)
 enum
 {
     // The GPIO registers base address.
-    GPIO_BASE = 0x20200000,
+    #ifdef IS_EMULATE
+	GPIO_BASE = 0x101F4000,
+    #else
+	GPIO_BASE = 0x20200000,
+    #endif
  
     // The offsets for reach register:
 
@@ -55,7 +59,11 @@ enum
      *********************************************/
     
     // The base address for UART. 0x20201000
-    UART0_BASE = (GPIO_BASE + 0x1000),
+    #ifdef IS_EMULATE
+	UART0_BASE = 0x101F1000,
+    #else
+	UART0_BASE = (GPIO_BASE + 0x1000),
+    #endif
  
     // The offsets for reach register for the UART.
     UART0_DR     = (UART0_BASE + 0x00),
