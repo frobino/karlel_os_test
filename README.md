@@ -58,6 +58,8 @@ about that right now).
 
 # TODO next:
 
+- describe how I created bootable SDcard from scratch (see gentoo/arch tutorials for raspberry pi)
+- continue with meaty tutorial (wiki osdev) and add clib support. 
 - linker impl a interrupt vector table? see baremetal projects
 - read more about freestanding and nostdlib flags. When using both, no stdlib is included -> I have to port my own as described in http://wiki.osdev.org/Meaty_Skeleton and http://wiki.osdev.org/Creating_a_C_Library, or linking a pre made std C library as newlib.
 - if nostdlib flag is removed (and I add a call no malloc), I get a similar result as step2 -  armc09 from valvers tutorial. 
