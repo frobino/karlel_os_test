@@ -20,8 +20,12 @@ LNKDIR = link
 LNKOPT = 
 
 CC = arm-none-eabi-gcc
+CPREFIX = arm-none-eabi-
 CFLAGS = -mcpu=arm1176jzf-s -fpic -ffreestanding -std=gnu99 -O2 -Wall -Wextra
 ASMFLAGS = -mcpu=arm1176jzf-s -fpic -ffreestanding
+
+QEMU = qemu-system-arm
+QFLAGS = -nographic -cpu arm1176 -m 256 -M versatilepb
 
 LIBS = 
 
@@ -49,6 +53,7 @@ all: kernel.img
 # NOTE:
 # $@ means "everything before :" ($(ODIR)/%.o in this case)
 # $< means "the first item in the dependencies list, i.e. the first element after :" (%.c in this case)
+# $^ means "the whole dependencies list"
 $(ODIR)/%.o: boot/%.s $(DEPS)
 	$(CC) -c -o $@ $< $(ASMFLAGS)
 
@@ -59,17 +64,26 @@ myos.elf: $(OBJ)
 	$(CC) -T $(LNKDIR)/linker$(LNKOPT).ld -o $@ $^ $(CFLAGS) $(LIBS) -nostdlib
 
 kernel.img: myos.elf
-	arm-none-eabi-objcopy myos.elf -O binary kernel.img
+	$(CPREFIX)objcopy myos.elf -O binary kernel.img
 
 # .PHONY prevents make from getting confused by an actual file
 # called clean and causes it to continue in spite of errors from rm
 .PHONY: clean veryclean
 
 clean:
-	rm -rf *.o
+	rm -rf $(ODIR)/*.o
 
 veryclean:
-	rm -rf *.o
+	rm -rf $(ODIR)/*.o
 	rm -rf *.elf
 	rm -rf *.img
 
+# requires qemu-system-arm installed.
+# ctrl-a h for help in qemu nographic mode
+#
+# basically we require to recompile kernel.c with a new constant -D IS_EMULATE
+# and make sure boot.o is already compiled
+qemu: $(ODIR)/boot.o
+	$(CC) -c -o $(ODIR)/kernel.o kernel/kernel.c $(CFLAGS) -D IS_EMULATE
+	$(CC) -T $(LNKDIR)/linker$(LNKOPT).ld -o myos.elf $(ODIR)/*.o $(CFLAGS) $(LIBS) -nostdlib
+	$(QEMU) $(QFLAGS) -kernel myos.elf
