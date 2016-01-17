@@ -51,6 +51,40 @@ From the ARMs perspective the kernel.img file is loaded, by default,
 to address 0x8000.  (there are ways to change that, not going to worry
 about that right now).
 
+# How to create bootable SD card from scratch:
+References: https://wiki.gentoo.org/wiki/Raspberry_Pi#Preparing_the_SD_card and http://elinux.org/ArchLinux_Install_Guide
+
+   Start fdisk to partition the SD card:
+       fdisk /dev/sdX
+   At the fdisk prompt, delete old partitions and create a new one:
+       Type o. This will clear out any partitions on the drive.
+       Type p to list partitions. There should be no partitions left.
+       Type n, then p for primary, 1 for the first partition on the drive, press ENTER to
+           accept the default first sector, then type +100M for the last sector.
+       Type t, then c to set the first partition to type W95 FAT32 (LBA).
+       Type n, then p for primary, 2 for the second partition on the drive, and then press
+           ENTER twice to accept the default first and last sector.
+       Write the partition table and exit by typing w.
+   Create and mount the FAT filesystem:
+       mkfs.vfat /dev/sdX1
+       mkdir boot
+       mount /dev/sdX1 boot
+   Create and mount the ext4 filesystem:
+       mkfs.ext4 /dev/sdX2
+       mkdir root 
+       mount /dev/sdX2 root
+   NOTE:
+       root will contain the so called "system root", the OS partition containing /boot /usr etc.
+       boot will contain the bootloader and everything called to initialize the OS
+   Put in the boot partition the following files:
+       bootcode.bin (proprietary raspberry)
+       start.elf (proprietary raspberry)
+       cmdline.txt (?)
+       and finally the generated kernel.img (must be named so)
+   Unmount the two partitions:
+       umount boot root
+   Insert the SD card into the Raspberry Pi, connect ethernet, and apply 5V power.
+   
 # References:
 - HOWTO QEMU:
   http://blog.bobuhiro11.net/2014/01-13-baremetal.html,
@@ -58,8 +92,13 @@ about that right now).
 
 # TODO next:
 
-- describe how I created bootable SDcard from scratch (see gentoo/arch tutorials for raspberry pi)
-- continue with meaty tutorial (wiki osdev) and add clib support. 
+X describe how I created bootable SDcard from scratch (see gentoo/arch tutorials for raspberry pi)
+- continue with meaty tutorial (wiki osdev) and add clib support.
+  The goal with this part is to: 1) reorg code structure in different projects (kernel, libcsupport,...)
+  2) Each project will then create different files which must be copied to different places on the OS hd.
+  For example, the kernel project will create the kernel.img file to be inserted in BOOT partition, while the libcsupport project will create files to be inserted in system root (ROOT) /usr/lib usr/include.
+  I will have still to investigate how the kernel.img file will "mount/see" the ROOT partition...
+
 - linker impl a interrupt vector table? see baremetal projects
 - read more about freestanding and nostdlib flags. When using both, no stdlib is included -> I have to port my own as described in http://wiki.osdev.org/Meaty_Skeleton and http://wiki.osdev.org/Creating_a_C_Library, or linking a pre made std C library as newlib.
 - if nostdlib flag is removed (and I add a call no malloc), I get a similar result as step2 -  armc09 from valvers tutorial. 

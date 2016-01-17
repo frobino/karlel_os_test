@@ -1,4 +1,0 @@
-all: boot.o
-
-boot.o: boot.s
-	arm-none-eabi-gcc -mcpu=arm1176jzf-s -fpic -ffreestanding -c boot.S -o boot.o
