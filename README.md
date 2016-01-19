@@ -11,20 +11,22 @@ A basic OS to understand and document the basics plus crazy ideas
 
 # to add:
 
-GPU - bootloading phase:
+**GPU - bootloading phase:**
 
-1) boots off of an on chip rom of some sort
-2) reads the sd card and looks for additional gpu specific boot files
+1. boots off of an on chip rom of some sort
+2. reads the sd card and looks for additional gpu specific boot files
 bootcode.bin and start.elf in the root dir of the first partition
 (fat32 formatted, loader.bin no longer used/required)
-3) in the same dir it looks for config.txt which you can do things like
+3. in the same dir it looks for config.txt which you can do things like
 change the arm speed from the default 700MHz, change the address where
 to load kernel.img, and many others
-4) it reads kernel.img the arm boot binary file and copies it to memory
-5) releases reset on the arm such that it runs from the address where
+4. it reads kernel.img the arm boot binary file and copies it to memory
+5. releases reset on the arm such that it runs from the address where
 the kernel.img data was written
 
-C run time (crt0) - what it is:
+http://www.ibm.com/developerworks/library/l-linuxboot/index.html
+
+**C run time (crt0)** - what it is:
 
 It is not a linker, but it is a small program (compiled to .o) which initializes sections of memory in a specific way (see below).
 
@@ -41,7 +43,7 @@ int main ()
 
 See the boot folder for files implementing a custom ctr0.o
 
-Others:
+**Others:**
 
 The memory is split between the GPU and the ARM, I believe the default
 is to split the memory in half.  And there are ways to change that
@@ -92,13 +94,21 @@ References: https://wiki.gentoo.org/wiki/Raspberry_Pi#Preparing_the_SD_card and 
 
 # TODO next:
 
-X describe how I created bootable SDcard from scratch (see gentoo/arch tutorials for raspberry pi)
+- describe how I created bootable SDcard from scratch (see gentoo/arch tutorials for raspberry pi) (**DONE**)
 - continue with meaty tutorial (wiki osdev) and add clib support.
   The goal with this part is to: 1) reorg code structure in different projects (kernel, libcsupport,...)
   2) Each project will then create different files which must be copied to different places on the OS hd.
   For example, the kernel project will create the kernel.img file to be inserted in BOOT partition, while the libcsupport project will create files to be inserted in system root (ROOT) /usr/lib usr/include.
-  I will have still to investigate how the kernel.img file will "mount/see" the ROOT partition...
+- I will have still to investigate how the kernel.img file will "mount/see" the ROOT partition... http://wiki.beyondlogic.org/index.php?title=RaspberryPi_RootNFS (see understanding rpi boot process) gives very good overview, explaining the roles of start.exe and *config.txt* and *cmdline.txt*. From there it is not clear yet how root get mounted, but it looks like start.exe passes some params to the kernel.img who is the responsable to mount/see the root partition (http://elinux.org/images/4/4f/02-linux-quick-start.pdf).  
+- See also 
+   - When the Raspberry Pi is first turned on, the ARM core is off, and the GPU core is on. At this point the SDRAM is disabled.
+   - The GPU starts executing the first stage bootloader, which is stored in ROM on the SoC. The first stage bootloader reads the SD card, and loads the second stage bootloader (bootcode.bin) into the L2 cache, and runs it.
+   - bootcode.bin enables SDRAM, and reads the third stage bootloader (loader.bin) from the SD card into RAM, and runs it.
+   - loader.bin reads the GPU firmware (start.elf).
+   - start.elf reads config.txt, cmdline.txt and kernel.img
 
+Others:
 - linker impl a interrupt vector table? see baremetal projects
 - read more about freestanding and nostdlib flags. When using both, no stdlib is included -> I have to port my own as described in http://wiki.osdev.org/Meaty_Skeleton and http://wiki.osdev.org/Creating_a_C_Library, or linking a pre made std C library as newlib.
 - if nostdlib flag is removed (and I add a call no malloc), I get a similar result as step2 -  armc09 from valvers tutorial. 
+- http://wiki.osdev.org/Kernel_Multitasking
