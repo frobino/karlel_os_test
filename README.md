@@ -1,100 +1,135 @@
 # karlel_os_test
-A basic OS to understand and document the basics plus crazy ideas
 
-# goals of the project:
+A basic OS to understand and document the basics on how to create a OS from scratch.
 
-- PORTABILITY: starting from the guide available at http://wiki.osdev.org, develope a simple OS portable between my dev boards. Merging material from tutorials at valvers.com
+## Goals of the project:
 
-- KNOWLEDGE OF BARE METAL: understand in details the boot sequence of an embedded system, create my own run time (memory segmentation - boot.s - , placement of segments in memory - linker script -, ...)
+- PORTABILITY: starting from the guide available at [http://wiki.osdev.org][wiki-osdev],
+  develop a simple OS portable between my dev boards. The raspberry pi specific
+  knowledge (v1,2,3,4) comes from [valvers tutorials][valvers].
+
+- KNOWLEDGE OF BARE METAL: understand in details the boot sequence of an embedded system,
+  create my own run time (memory segmentation - *boot.s*, placement of segments
+  in memory - *linker script*, ...)
 
 - TEST NEW LANGUAGES: e.g. a new "bare bones" in languages such as haskell or rust?
 
-# to add:
+## Requirements
 
-**GPU - bootloading phase:**
+The local machine building the OS (i.e. your PC) requires the following packages
+to be installed:
 
-1. boots off of an on chip rom of some sort
-2. reads the sd card and looks for additional gpu specific boot files
-bootcode.bin and start.elf in the root dir of the first partition
-(fat32 formatted, loader.bin no longer used/required)
-3. in the same dir it looks for config.txt which you can do things like
-change the arm speed from the default 700MHz, change the address where
-to load kernel.img, and many others
-4. it reads kernel.img the arm boot binary file and copies it to memory
-5. releases reset on the arm such that it runs from the address where
-the kernel.img data was written
+```
+gcc-arm-none-eabi
+qemu-system-arm
+```
 
-http://www.ibm.com/developerworks/library/l-linuxboot/index.html
+## How to build and run the karlel OS (default rpi v1)
 
-**C run time (crt0)** - what it is:
+Create the OS image (default rpi v1):
 
-It is not a linker, but it is a small program (compiled to .o) which initializes sections of memory in a specific way (see below).
+```
+cd rasp
+make
+```
 
-C run time (crt0) - what it is supposed to do (see boot.*.s):
+To run the OS image on qemu (default rpi v1):
 
-1] initialize the pre-initialized variables before the main() is called. In other words, it copies the initial values of initialized variables from non-volatile to volatile memory (ram). Example of pre initialized variable:
-unsigned int var = 3; (data section?)
-int main ()
-...
+```
+make qemu
+```
 
-2] initialize to 0 all the non pre-installed variables (the ones in bss section)
+To run the OS on the real rpi v1 board:
 
-3] setup the stack pointer.
+1. [Create a bootable SD card](#How-to-create-bootable-SD-card-from-scratch)
+2. Copy the [rpi1 specifi boot files](rasp/Proprietary_boot_files/) in the boot partition:
+  - bootcode.bin (proprietary raspberry)
+  - start.elf (proprietary raspberry)
+  - cmdline.txt (?)
+  - kernel.img (this file, from the make command above, must be named so)
+3. Insert the SD card into the Raspberry Pi, connect ethernet, and apply 5V power.
 
-See the boot folder for files implementing a custom ctr0.o
+In order to see any thing from the raspberry pi, we need a to connect a uart
+to the board, with baud 115200.
 
-**Others:**
+## How to build and run u-boot on rpi v4
 
-The memory is split between the GPU and the ARM, I believe the default
-is to split the memory in half.  And there are ways to change that
-split (to give the ARM more).  Not going to worry about that here.
+Build [u-boot][u-boot] for your board. Follow the instructions in the [u-boot][u-boot] repo.
+The build process will create the following files:
+- boot.src
+- u-boot.bin
 
-From the ARMs perspective the kernel.img file is loaded, by default,
-to address 0x8000.  (there are ways to change that, not going to worry
-about that right now).
+In the SD card boot partition we MUST put the "first thing to run" as a file named kernel7l.img.
 
-# How to create bootable SD card from scratch:
-References: https://wiki.gentoo.org/wiki/Raspberry_Pi#Preparing_the_SD_card and http://elinux.org/ArchLinux_Install_Guide
+For example, when trying to start u-boot first, we take the uboot.bin,
+and rename it to kernel7l.img (togheter with boot.src, which tells to u-boot
+what to boot, the uImage file).
 
-   Start fdisk to partition the SD card:
-       fdisk /dev/sdX
-   At the fdisk prompt, delete old partitions and create a new one:
-       Type o. This will clear out any partitions on the drive.
-       Type p to list partitions. There should be no partitions left.
-       Type n, then p for primary, 1 for the first partition on the drive, press ENTER to
-           accept the default first sector, then type +100M for the last sector.
-       Type t, then c to set the first partition to type W95 FAT32 (LBA).
-       Type n, then p for primary, 2 for the second partition on the drive, and then press
-           ENTER twice to accept the default first and last sector.
-       Write the partition table and exit by typing w.
-   Create and mount the FAT filesystem:
-       mkfs.vfat /dev/sdX1
-       mkdir boot
-       mount /dev/sdX1 boot
-   Create and mount the ext4 filesystem:
-       mkfs.ext4 /dev/sdX2
-       mkdir root 
-       mount /dev/sdX2 root
-   NOTE:
-       root will contain the so called "system root", the OS partition containing /boot /usr etc.
-       boot will contain the bootloader and everything called to initialize the OS
-   Put in the boot partition the following files:
-       bootcode.bin (proprietary raspberry)
-       start.elf (proprietary raspberry)
-       cmdline.txt (?)
-       and finally the generated kernel.img (must be named so)
-   Unmount the two partitions:
-       umount boot root
-   Insert the SD card into the Raspberry Pi, connect ethernet, and apply 5V power.
-   
-# References:
-- HOWTO QEMU:
-  http://blog.bobuhiro11.net/2014/01-13-baremetal.html,
-  https://upload.wikimedia.org/wikiversity/en/e/ef/ESys.5.A.Hello.20141112.pdf
+cp ~/Projects/u-boot/boot.scr /media/$USER/F141-D800/boot.scr 
+cp ~/Projects/u-boot/u-boot.bin /media/$USER/F141-D800/kernel7l.img 
+cp ~/Projects/<myOS> /media/$USER/F141-D800/uImage
+
+If we do not want to use u-boot, pick the pre compiled fw at https://github.com/raspberrypi/firmware
+
+Note that for rpi4, no gpu boot is needed? so no start.elf.
+
+## Documentation
+
+[Generic boot process description][generic-boot]
+
+[My summary on C run time (crt0)](doc/crt0.md)
+
+[QEMU for rpi v1 (1/2)][qemu-rpi1-1]
+
+[QEMU for rpi v1 (2/2)][qemu-rpi1-2]
+
+### Raspberry Pi v1 specific
+
+[My summary on bootload procedure](doc/rpi1/gpu-bootload-phase.md)
+
+### How to create bootable SD card from scratch:
+
+Start fdisk to partition the SD card:
+
+    fdisk /dev/sdX
+
+At the fdisk prompt, delete old partitions and create a new one:
+    
+	Type o. This will clear out any partitions on the drive.
+    Type p to list partitions. There should be no partitions left.
+    Type n, then p for primary, 1 for the first partition on the drive, press ENTER to
+        accept the default first sector, then type +100M for the last sector.
+    Type t, then c to set the first partition to type W95 FAT32 (LBA).
+    Type n, then p for primary, 2 for the second partition on the drive, and then press
+        ENTER twice to accept the default first and last sector.
+    Write the partition table and exit by typing w.
+
+Create and mount the FAT filesystem in the boot partition:
+    
+	mkfs.vfat /dev/sdX1
+    mkdir boot
+    mount /dev/sdX1 boot
+
+Create and mount the ext4 filesystem in the root partition:
+    
+	mkfs.ext4 /dev/sdX2
+    mkdir root 
+    mount /dev/sdX2 root
+
+Unmount the two partitions:
+    
+	umount boot root
+
+NOTE:
+
+- **boot** will contain the bootloader and everything called to initialize the OS
+- **root** will contain the so called "system root", the classic OS partition (/)
+  containing /bin, /boot, /home, /usr, etc.
+
+References: [prepare SD card (1/2)][sd-1] and [prepare SD card (2/2)][sd-2]
 
 # TODO next:
 
-- describe how I created bootable SDcard from scratch (see gentoo/arch tutorials for raspberry pi) (**DONE**)
 - continue with meaty tutorial (wiki osdev) and add clib support.
   The goal with this part is to: 1) reorg code structure in different projects (kernel, libcsupport,...)
   2) Each project will then create different files which must be copied to different places on the OS hd.
@@ -112,3 +147,15 @@ Others:
 - read more about freestanding and nostdlib flags. When using both, no stdlib is included -> I have to port my own as described in http://wiki.osdev.org/Meaty_Skeleton and http://wiki.osdev.org/Creating_a_C_Library, or linking a pre made std C library as newlib.
 - if nostdlib flag is removed (and I add a call no malloc), I get a similar result as step2 -  armc09 from valvers tutorial. 
 - http://wiki.osdev.org/Kernel_Multitasking
+
+# Roberto:
+
+
+[wiki-osdev]: http://wiki.osdev.org
+[valvers]: https://www.valvers.com/open-software/raspberry-pi/bare-metal-programming-in-c-part-1/
+[generic-boot]: http://www.ibm.com/developerworks/library/l-linuxboot/index.html
+[qemu-rpi1-1]: http://blog.bobuhiro11.net/2014/01-13-baremetal.html,
+[qemu-rpi1-2]: https://upload.wikimedia.org/wikiversity/en/e/ef/ESys.5.A.Hello.20141112.pdf
+[sd-1]: https://wiki.gentoo.org/wiki/Raspberry_Pi#Preparing_the_SD_card
+[sd-2]: http://elinux.org/ArchLinux_Install_Guide
+[u-boot]: https://gitlab.denx.de/u-boot/u-boot.git
