@@ -1,0 +1,21 @@
+SRCS := $(wildcard kernel/*.c)
+OBJS = $(SRCS:.c=.o)
+CFLAGS = -Wall -O2 -mcpu=cortex-a53+nosimd -ffreestanding
+
+all: clean kernel8.img
+
+boot.o: boot/boot_rpi3.s
+	clang --target=aarch64-elf $(CFLAGS) -c boot/boot_rpi3.s -o boot.o
+
+%.o: %.c
+	clang --target=aarch64-elf $(CFLAGS) -D IS_RPI3 -c $< -o $@
+
+kernel8.img: boot.o $(OBJS)
+	ld.lld -m aarch64elf -nostdlib boot.o $(OBJS) -T link/linker.ld -o kernel8.elf
+	llvm-objcopy-13 -O binary kernel8.elf kernel8.img
+
+clean:
+	rm kernel8.elf *.o >/dev/null 2>/dev/null || true
+
+run:
+	qemu-system-aarch64 -M raspi3b -kernel kernel8.img -serial stdio -monitor none -nographic

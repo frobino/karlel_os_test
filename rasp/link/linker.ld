@@ -17,7 +17,7 @@ SECTIONS
     __rodata_start = .;
     .rodata :
     {
-        *(.rodata)
+        *(.rodata .rodata.*) /* .rodata.* necessary for mbox? */
     }
     . = ALIGN(4096); /* align to page size */
     __rodata_end = .;
@@ -40,3 +40,4 @@ SECTIONS
     __bss_end = .;
     __end = .;
 }
+__bss_size = (__bss_end - __bss_start)>>3; /* used from boot.s rpi3 only */

@@ -4,7 +4,11 @@
 #endif
 #include <stddef.h>
 #include <stdint.h>
- 
+
+#ifdef IS_RPI3
+#include "mbox.h"
+#endif
+
 static inline void mmio_write(uint32_t reg, uint32_t data)
 {
 	*(volatile uint32_t *)reg = data;
@@ -38,6 +42,10 @@ enum
     // The GPIO registers base address.
     #ifdef IS_EMULATE
 	GPIO_BASE = 0x101F4000,
+    #elif IS_RPI3
+	GPIO_BASE = 0x3F200000,
+    #elif IS_RPI4
+	GPIO_BASE = 0xFE200000,
     #else
 	GPIO_BASE = 0x20200000,
     #endif
@@ -109,7 +117,6 @@ enum
 
      /* #define GPIO_GPCLR0     10 */
     GPIO_GPCLR0 = (GPIO_BASE + 0x28), // DOUBLE CHECK ON MANUAL
-    
 };
 
 void ok_led_init()
@@ -136,6 +143,53 @@ void ok_init_write(uint8_t data)
 	        mmio_write(GPIO_GPSET0, (1 << 16));
 	}
 
+}
+
+void uart_init_rpi3(){
+    #ifdef IS_RPI3
+
+    /* TODO:
+       there are theories that a mbox is needed for initializing
+       uart1 in rpi3/4 (https://github.com/bztsrc/raspi3-tutorial/tree/master/05_uart0).
+       Check if this is true. On qemu seems to be running fine.
+     */
+     register unsigned int r;
+ 
+     /* initialize UART */
+     // *UART0_CR = 0;         // turn off UART0
+     *(volatile uint32_t *)UART0_CR = 0;
+ 
+     /* set up clock for consistent divisor values */
+     mbox[0] = 9*4;
+     mbox[1] = MBOX_REQUEST;
+     mbox[2] = MBOX_TAG_SETCLKRATE; // set clock rate
+     mbox[3] = 12;
+     mbox[4] = 8;
+     mbox[5] = 2;           // UART clock
+     mbox[6] = 4000000;     // 4Mhz
+     mbox[7] = 0;           // clear turbo
+     mbox[8] = MBOX_TAG_LAST;
+     mbox_call(MBOX_CH_PROP);
+ 
+     /* map UART0 to GPIO pins */
+     r=GPIO_GPFSE1L;
+     r&=~((7<<12)|(7<<15)); // gpio14, gpio15
+     r|=(4<<12)|(4<<15);    // alt0
+     // *GPIO_GPFSE1L = r;
+     *(volatile uint32_t *)GPIO_GPFSE1L = r;
+     *(volatile uint32_t *)GPPUD = 0;            // enable pins 14 and 15
+     r=150; while(r--) { asm volatile("nop"); }
+     *(volatile uint32_t *)GPPUDCLK0 = (1<<14)|(1<<15);
+     r=150; while(r--) { asm volatile("nop"); }
+     *(volatile uint32_t *)GPPUDCLK0 = 0;        // flush GPIO setup
+ 
+     *(volatile uint32_t *)UART0_ICR = 0x7FF;    // clear interrupts
+     *(volatile uint32_t *)UART0_IBRD = 2;       // 115200 baud
+     *(volatile uint32_t *)UART0_FBRD = 0xB;
+     *(volatile uint32_t *)UART0_LCRH = 0x7<<4;  // 8n1, enable FIFOs
+     *(volatile uint32_t *)UART0_CR = 0x301;     // enable Tx, Rx, UART
+
+     #endif
 }
 
 void uart_init()
