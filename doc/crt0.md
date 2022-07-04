@@ -3,6 +3,7 @@
 **What it is**:
 
 It is not a linker, but it is a small program (compiled to .o) which initializes sections of memory in a specific way (see below).
+In this project the crt0 is implemented in the boot.s file.
 
 **What it is supposed to do (see boot.*.s)**:
 

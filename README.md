@@ -43,10 +43,10 @@ To run the OS on the real rpi v1 board:
 
 1. [Create a bootable SD card](#How-to-create-bootable-SD-card-from-scratch)
 2. Copy the [rpi1 specifi boot files](rasp/Proprietary_boot_files/) in the boot partition:
-  - bootcode.bin (proprietary raspberry)
-  - start.elf (proprietary raspberry)
-  - cmdline.txt (?)
-  - kernel.img (this file, from the make command above, must be named so)
+  - *bootcode.bin* (proprietary raspberry, the first binary read from GPU. Load and execute start.elf)
+  - *start.elf* (proprietary raspberry, runs on GPU. Looks for kernel.img. When it founds it, the GPU triggers the reset line on the ARM processor, which starts executing code at address 0x80000)
+  - *cmdline.txt* (used by start.elf to configure arm speed, etc.)
+  - *kernel.img* (our os, created from the make command above, must be named so)
 3. Insert the SD card into the Raspberry Pi, connect ethernet, and apply 5V power.
 
 In order to see any thing from the raspberry pi, we need a to connect a uart
@@ -75,17 +75,19 @@ Note that for rpi4, no gpu boot is needed? so no start.elf.
 
 ## Documentation
 
-[Generic boot process description][generic-boot]
-
 [My summary on C run time (crt0)](doc/crt0.md)
 
 [QEMU for rpi v1 (1/2)][qemu-rpi1-1]
 
 [QEMU for rpi v1 (2/2)][qemu-rpi1-2]
 
+[Generic boot process description (broken link)][generic-boot]
+
 ### Raspberry Pi v1 specific
 
 [My summary on bootload procedure](doc/rpi1/gpu-bootload-phase.md)
+
+[Someone else summary on bootload procedure][rpi3-boot]
 
 ### How to create bootable SD card from scratch:
 
@@ -148,9 +150,6 @@ Others:
 - if nostdlib flag is removed (and I add a call no malloc), I get a similar result as step2 -  armc09 from valvers tutorial. 
 - http://wiki.osdev.org/Kernel_Multitasking
 
-# Roberto:
-
-
 [wiki-osdev]: http://wiki.osdev.org
 [valvers]: https://www.valvers.com/open-software/raspberry-pi/bare-metal-programming-in-c-part-1/
 [generic-boot]: http://www.ibm.com/developerworks/library/l-linuxboot/index.html
@@ -159,3 +158,4 @@ Others:
 [sd-1]: https://wiki.gentoo.org/wiki/Raspberry_Pi#Preparing_the_SD_card
 [sd-2]: http://elinux.org/ArchLinux_Install_Guide
 [u-boot]: https://gitlab.denx.de/u-boot/u-boot.git
+[rpi3-boot]: https://github.com/bztsrc/raspi3-tutorial#about-the-hardware
